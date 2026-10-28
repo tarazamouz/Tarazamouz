@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B3A57">
+<meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-title" content="ترازآموز">
+<title>ترازآموز</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --paper:#F7F9F2; --ledger:#DCE7D6; --ink:#1B3A57; --text:#1E2B33; --muted:#586770;
+  --rule:#C0392B; --pencil:#F0C94A; --pencil-bg:#FBF3D0; --ok:#2E7D4F; --ok-bg:#E3F1E7;
+  --bad:#B5382B; --bad-bg:#FBE9E6; --line:#C4D1BF;
+  --font:"Vazirmatn","Noto Sans Arabic","Segoe UI",Tahoma,"Iranian Sans",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--font);font-size:16px;line-height:1.85;color:var(--text);
+  background-color:var(--ledger);
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,rgba(27,58,87,.08) 31px,rgba(27,58,87,.08) 32px);}
+#app{max-width:560px;margin:0 auto;padding:16px 14px calc(92px + env(safe-area-inset-bottom))}
+h1{font-size:26px;line-height:1.4;margin:6px 0 4px;color:var(--ink);font-weight:800}
+h2{font-size:19px;line-height:1.5;margin:22px 0 8px;color:var(--ink);font-weight:700}
+h3{font-size:16px;margin:0 0 4px;color:var(--ink)}
+p{margin:0 0 10px}
+.muted{color:var(--muted);font-size:14px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 10px}
+.back{display:inline-block;background:none;border:0;color:var(--ink);font:inherit;font-size:14px;padding:6px 0;cursor:pointer;text-decoration:underline}
+button{font-family:inherit}
+.btn{display:block;width:100%;min-height:48px;border:0;border-radius:8px;background:var(--ink);color:#fff;font-size:16px;font-weight:700;padding:10px 16px;cursor:pointer}
+.btn.alt{background:var(--paper);color:var(--ink);border:1.5px solid var(--ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px dashed var(--ink);min-height:44px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn+.btn{margin-top:8px}
+.btns{display:flex;gap:8px;margin-top:10px}.btns .btn{margin:0}
+:focus-visible{outline:3px solid var(--pencil);outline-offset:2px}
+
+/* خانه */
+.progress{height:8px;border-radius:99px;background:rgba(27,58,87,.15);overflow:hidden;margin-top:8px}
+.progress i{display:block;height:100%;background:var(--ink);border-radius:99px}
+.lcard{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:right;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px;margin:0 0 10px;font:inherit;color:inherit;cursor:pointer}
+.num{flex:none;width:40px;height:40px;border-radius:6px;background:var(--ink);color:#fff;font-weight:800;display:grid;place-items:center;font-size:18px}
+.lcard h3{font-size:16px;line-height:1.6}
+.tag{display:inline-block;font-size:12px;padding:0 8px;border-radius:99px;background:var(--pencil-bg);border:1px solid var(--pencil);color:#6b5400;margin-inline-start:6px;line-height:1.7}
+.tag.done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+details.soon{background:var(--paper);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:0 0 8px;color:var(--muted)}
+details.soon summary{cursor:pointer;font-weight:700;color:var(--ink)}
+details.soon ul{margin:8px 0 0;padding-inline-start:20px}
+
+/* درس */
+.scene{border-inline-start:4px double var(--rule);padding:8px 12px;background:var(--paper);border-radius:6px;margin:0 0 10px}
+.lab{font-weight:700;color:var(--ink);font-size:14px;display:block}
+ul.tips{margin:0 0 10px;padding-inline-start:20px}
+ul.tips li{margin-bottom:6px}
+.ex{display:flex;align-items:center;gap:10px;width:100%;text-align:right;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px;font:inherit;color:inherit;cursor:pointer;min-height:48px}
+.ex .st{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:14px;font-weight:800}
+.ex.done .st{background:var(--ok);border-color:var(--ok);color:#fff}
+
+/* سند */
+.sheet{background:var(--paper);border:1px solid var(--line);border-inline-start:4px double var(--rule);border-radius:10px;padding:12px;margin:10px 0}
+.story{font-size:16px;margin:0 0 6px}
+.row{position:relative;border-bottom:1px solid var(--line);padding:10px 0}
+.row select,.row input,textarea{width:100%;font:inherit;font-size:16px;color:var(--text);background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-height:44px}
+textarea{min-height:92px;resize:vertical}
+.amts{display:flex;gap:8px;margin-top:8px}
+.amts label{flex:1;font-size:13px;color:var(--muted)}
+.amts input{margin-top:2px;text-align:center;direction:ltr;font-variant-numeric:tabular-nums}
+.row .x{position:absolute;top:8px;left:0;width:36px;height:36px;border:0;background:none;font-size:22px;color:var(--bad);cursor:pointer}
+.row.has-x select{padding-left:40px}
+.bal{display:flex;gap:6px;margin-top:10px;font-size:14px}
+.bal div{flex:1;text-align:center;border-radius:6px;padding:4px 6px;background:rgba(27,58,87,.07)}
+.bal .st{background:var(--pencil-bg);border:1px solid var(--pencil)}
+.bal .st.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:700}
+.fb{margin-top:12px}
+.msg{border-radius:8px;padding:10px 12px;margin:0 0 8px;font-size:15px}
+.msg.bad{background:var(--bad-bg);border:1px solid var(--bad);color:#7d241b}
+.msg.good{background:var(--ok-bg);border:1px solid var(--ok);color:#1d5a37}
+.msg.info{background:var(--pencil-bg);border:1px solid var(--pencil);color:#5c4900}
+.msg ul{margin:4px 0 0;padding-inline-start:20px}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:15px}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:right;line-height:1.6}
+th{background:var(--ink);color:#fff;font-weight:700}
+td.n{text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+tfoot td{font-weight:800;background:var(--paper)}
+
+/* دسته‌بندی */
+.item{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px}
+.item.bad{border-color:var(--bad);background:var(--bad-bg)}
+.item.ok{border-color:var(--ok);background:var(--ok-bg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{min-height:40px;padding:4px 12px;border-radius:99px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);font-size:14px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+.why{font-size:14px;color:var(--muted);margin-top:4px}
+
+/* دفتر من */
+.tabs{display:flex;gap:6px;margin:10px 0}
+.tabs button{flex:1;min-height:44px;border-radius:8px;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);font-weight:700;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:#fff}
+.t2{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);background:#fff;border-radius:6px;overflow:hidden;margin-top:6px}
+.t2>div{padding:6px 8px;min-height:30px}
+.t2>div:first-child{border-inline-end:1px solid var(--line)}
+.t2 b{display:block;font-size:13px;color:var(--muted)}
+.t2 span{display:block;font-variant-numeric:tabular-nums}
+
+/* نوار پایین */
+nav.bar{position:fixed;inset-inline:0;bottom:0;background:var(--paper);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav.bar button{flex:1;min-height:60px;background:none;border:0;color:var(--muted);font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+nav.bar button[aria-current="page"]{color:var(--ink);font-weight:800;box-shadow:inset 0 3px 0 var(--rule)}
+nav.bar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.toast{position:fixed;inset-inline:16px;bottom:84px;margin:0 auto;max-width:420px;background:var(--ink);color:#fff;padding:10px 14px;border-radius:8px;text-align:center;z-index:9}
+.warn{background:var(--pencil-bg);border:1px solid var(--pencil);border-radius:8px;padding:8px 12px;margin:0 0 10px;font-size:14px}
+input.name{width:100%;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-height:44px;margin:6px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<nav class="bar" aria-label="منوی اصلی">
+  <button data-a="go" data-to="" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>درس‌ها</button>
+  <button data-a="go" data-to="books" data-tab="books"><svg viewBox="0 0 24 24"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M9 8h6M9 12h6"/></svg>دفتر من</button>
+  <button data-a="go" data-to="me" data-tab="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>من</button>
+</nav>
+<noscript>برای استفاده از این برنامه باید جاوااسکریپت فعال باشد.</noscript>
+
+<script src="content.js"></script>
+<script src="engine.js"></script>
+<script>
+(function(){
+"use strict";
+const E = Engine, fa = E.fa;
+const names = {}; Object.keys(ACCOUNTS).forEach(k => names[k] = ACCOUNTS[k].n);
+const KEY = "hesabdari-karbordi-v1";
+const app = document.getElementById("app");
+
+/* ---------- ذخیره‌سازی ---------- */
+let storageOK = true, mem = null;
+function load(){ try{ const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; }catch(e){ storageOK = false; return null; } }
+let S = Object.assign({v:1, name:"", asked:false, done:{}, attempts:{}, entries:[], reflect:{}}, load() || {});
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ storageOK = false; mem = JSON.stringify(S); } }
+try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }catch(e){ storageOK = false; }
+
+/* ---------- ابزار ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+const allEx = () => LESSONS.flatMap(l => l.exercises);
+const doneCount = () => allEx().filter(x => S.done[x.id]).length;
+const lessonDone = L => L.exercises.filter(x => S.done[x.id]).length;
+let toastT;
+function toast(m){ const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2200); }
+function setTab(tab){ document.querySelectorAll("nav.bar button").forEach(b => { if(b.dataset.tab === tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); }); }
+function show(html, tab){ app.innerHTML = html; setTab(tab); window.scrollTo(0,0); const h = app.querySelector("h1"); if(h){ h.setAttribute("tabindex","-1"); } }
+const storageBanner = () => storageOK ? "" : '<div class="warn">ذخیره‌سازی مرورگر در دسترس نیست؛ پیشرفتت فقط تا بستن این صفحه می‌ماند.</div>';
+
+/* ---------- نمای خانه ---------- */
+function viewHome(){
+  const total = allEx().length, d = doneCount();
+  let h = storageBanner();
+  if(!S.asked){
+    h += `<div class="card"><h3>خوش آمدی</h3><p class="muted">اگر دوست داری نامت را بنویس تا اپ با نام صدایت کند.</p>
+      <input class="name" id="nm" maxlength="30" placeholder="نام (اختیاری)" autocomplete="given-name">
+      <div class="btns"><button class="btn" data-a="saveName">شروع</button><button class="btn alt" data-a="skipName">بعداً</button></div></div>`;
+  }
+  h += `<h1>${S.name ? "سلام " + esc(S.name) : "ترازآموز"}</h1>
+    <p class="muted">حسابداری کاربردی: تمرین عملی برای ورود به بازار کار، نه درس دانشگاهی.</p>
+    <div class="card"><b>پیشرفت تو: ${fa(d)} از ${fa(total)} تمرین</b>
+    <div class="progress" role="progressbar" aria-valuenow="${d}" aria-valuemin="0" aria-valuemax="${total}"><i style="width:${total ? Math.round(d/total*100) : 0}%"></i></div></div>
+    <h2>سطح مقدماتی</h2>`;
+  LESSONS.forEach(L => {
+    const dn = lessonDone(L), full = dn === L.exercises.length;
+    h += `<button class="lcard" data-a="go" data-to="lesson/${L.id}"><span class="num">${fa(L.n)}</span>
+      <span><h3>${esc(L.title)}</h3><span class="muted">${fa(dn)} از ${fa(L.exercises.length)} تمرین</span>
+      <span class="tag ${full ? "done" : ""}">${full ? "کامل شد" : "رایگان"}</span></span></button>`;
+  });
+  h += `<h2>به‌زودی</h2><p class="muted">این بخش‌ها به‌تدریج اضافه می‌شوند.</p>`;
+  COMING.forEach(g => {
+    h += `<details class="soon"><summary>${esc(g.level)} (${fa(g.items.length)} درس)</summary><ul>${g.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul></details>`;
+  });
+  h += `<p class="muted" style="margin-top:16px">محتوا آموزشی است و جایگزین مشاوره‌ی مالیاتی یا حقوقی نیست. نرخ‌ها در تمرین‌ها فرضی‌اند.</p>`;
+  show(h, "home");
+}
+
+/* ---------- نمای درس ---------- */
+function viewLesson(id){
+  const L = LESSONS.find(l => l.id === id); if(!L) return viewHome();
+  let h = `<button class="back" data-a="go" data-to="">بازگشت به درس‌ها</button>
+    <h1>درس ${fa(L.n)}: ${esc(L.title)}</h1>
+    <p>${md(L.goal)}</p>
+    <div class="scene"><span class="lab">موقعیت واقعی کار</span>${md(L.scene)}</div>
+    <span class="lab">نکته‌های ریز</span><ul class="tips">${L.tips.map(t => `<li>${md(t)}</li>`).join("")}</ul>
+    <h2>تمرین‌ها</h2>`;
+  L.exercises.forEach((x, i) => {
+    const dn = !!S.done[x.id];
+    h += `<button class="ex ${dn ? "done" : ""}" data-a="go" data-to="ex/${L.id}/${i}"><span class="st">${dn ? "✓" : fa(i + 1)}</span><span>${esc(x.title)}</span></button>`;
+  });
+  show(h, "home");
+}
+
+/* ---------- تمرین ---------- */
+let cur = null;
+function viewEx(lid, idx){
+  const L = LESSONS.find(l => l.id === lid); idx = +idx;
+  if(!L || !L.exercises[idx]) return viewHome();
+  const ex = L.exercises[idx];
+  cur = { L, ex, idx, fails: 0 };
+  let h = `<button class="back" data-a="go" data-to="lesson/${L.id}">بازگشت به درس ${fa(L.n)}</button>
+    <p class="muted" style="margin:0">تمرین ${fa(idx + 1)} از ${fa(L.exercises.length)}${S.done[ex.id] ? " | قبلاً درست حل شده؛ می‌توانی دوباره تمرین کنی" : ""}</p>
+    <h1>${esc(ex.title)}</h1>`;
+  if(ex.type === "journal"){
+    cur.ed = { rows: [{acc:"",d:"",c:""}, {acc:"",d:"",c:""}], desc: "" };
+    h += `<div class="sheet"><p class="story">${md(ex.story)}</p><p class="muted">مبالغ به ${esc(ex.unit)}</p>
+      <div id="rows"></div>
+      <button class="btn ghost" data-a="addRow">افزودن سطر</button>
+      <div class="bal" id="bal"></div>
+      ${ex.needDesc ? '<label class="lab" for="desc" style="margin-top:10px">شرح سند</label><textarea id="desc" placeholder="چه چیزی، از چه کسی، طبق چه مدرکی؟"></textarea>' : ""}
+    </div>
+    <button class="btn" data-a="check">بررسی سند</button><div class="fb" id="fb"></div>`;
+  } else if(ex.type === "classify"){
+    cur.sel = {};
+    h += `<p>برای هر قلم، گروه درست را انتخاب کن.</p><div id="items"></div>
+      <button class="btn" data-a="classCheck">بررسی</button><div class="fb" id="fb"></div>`;
+  } else if(ex.type === "reflect"){
+    h += `<p>${md(ex.prompt)}</p><textarea id="refl" placeholder="پاسخ خودت را اینجا بنویس"></textarea>
+      <button class="btn" data-a="reflectShow" style="margin-top:8px">نمایش پاسخ نمونه</button><div class="fb" id="fb"></div>`;
+  }
+  h += `<div class="btns">${idx > 0 ? `<button class="btn alt" data-a="go" data-to="ex/${L.id}/${idx - 1}">تمرین قبلی</button>` : ""}${idx < L.exercises.length - 1 ? `<button class="btn alt" data-a="go" data-to="ex/${L.id}/${idx + 1}">تمرین بعدی</button>` : ""}</div>`;
+  show(h, "home");
+  if(ex.type === "journal"){ renderRows(); updateBal(); }
+  if(ex.type === "classify") renderItems();
+  if(ex.type === "reflect" && S.reflect[ex.id]) document.getElementById("refl").value = S.reflect[ex.id];
+}
+
+/* --- سند --- */
+function renderRows(){
+  const ed = cur.ed, ex = cur.ex, many = ed.rows.length > 2;
+  document.getElementById("rows").innerHTML = ed.rows.map((r, i) => `
+    <div class="row ${many ? "has-x" : ""}" data-i="${i}">
+      <select class="acc" aria-label="حساب سطر ${fa(i + 1)}"><option value="">حساب را انتخاب کن</option>
+        ${ex.accounts.map(a => `<option value="${a}" ${r.acc === a ? "selected" : ""}>${esc(names[a])}</option>`).join("")}</select>
+      <div class="amts">
+        <label>بدهکار<input class="d" inputmode="decimal" autocomplete="off" value="${esc(r.d)}"></label>
+        <label>بستانکار<input class="c" inputmode="decimal" autocomplete="off" value="${esc(r.c)}"></label>
+      </div>
+      ${many ? `<button class="x" data-a="delRow" data-i="${i}" aria-label="حذف سطر ${fa(i + 1)}">×</button>` : ""}
+    </div>`).join("");
+}
+function updateBal(){
+  let d = 0, c = 0;
+  cur.ed.rows.forEach(r => { const x = E.parseAmount(r.d), y = E.parseAmount(r.c); if(!isNaN(x)) d += x; if(!isNaN(y)) c += y; });
+  d = Math.round(d * 1000) / 1000; c = Math.round(c * 1000) / 1000;
+  const ok = d > 0 && d === c;
+  document.getElementById("bal").innerHTML = `<div>بدهکار: ${E.fmt(d)}</div><div>بستانکار: ${E.fmt(c)}</div>
+    <div class="st ${ok ? "ok" : ""}">${ok ? "متعادل" : (d || c) ? "اختلاف " + E.fmt(Math.abs(d - c)) : "خالی"}</div>`;
+}
+function solutionTable(sol){
+  return `<table><thead><tr><th>حساب</th><th>بدهکار</th><th>بستانکار</th></tr></thead><tbody>` +
+    sol.map(r => `<tr><td>${esc(names[r.a])}</td><td class="n">${r.d ? E.fmt(r.d) : ""}</td><td class="n">${r.c ? E.fmt(r.c) : ""}</td></tr>`).join("") + `</tbody></table>`;
+}
+function checkJournal(){
+  const { ex, ed, L, idx } = cur, fb = document.getElementById("fb");
+  const g = E.gradeJournal(ed.rows, ex.solutions, names);
+  let descBad = false;
+  if(g.ok && ex.needDesc){ const d = ed.desc.trim(); descBad = d.length < 20 || !/[\d۰-۹٠-٩]/.test(d); }
+  if(g.ok && descBad){
+    fb.innerHTML = `<div class="msg info"><b>سند درست است، ولی شرح کافی نیست.</b><ul><li>شرح باید بگوید چه چیزی، از چه کسی و طبق چه مدرکی (شماره‌ی فاکتور) ثبت شده است.</li></ul></div>`; return;
+  }
+  if(g.ok){
+    S.done[ex.id] = true;
+    const rows = ed.rows.map(r => ({ acc: r.acc, d: E.parseAmount(r.d), c: E.parseAmount(r.c) })).filter(r => r.acc && (r.d || r.c));
+    const entry = { id: ex.id, title: ex.title, lesson: L.id, rows, desc: ed.desc.trim() };
+    const k = S.entries.findIndex(e => e.id === ex.id);
+    if(k >= 0) S.entries[k] = entry; else S.entries.push(entry);
+    save();
+    const nxt = idx < L.exercises.length - 1 ? `<button class="btn" data-a="go" data-to="ex/${L.id}/${idx + 1}">تمرین بعدی</button>` : `<button class="btn" data-a="go" data-to="lesson/${L.id}">بازگشت به درس</button>`;
+    fb.innerHTML = `<div class="msg good"><b>درست است.</b><p style="margin:4px 0 0">${md(ex.explain)}</p></div>${nxt}<button class="btn alt" data-a="go" data-to="books">دیدن در دفتر من</button>`;
+    return;
+  }
+  cur.fails++; S.attempts[ex.id] = (S.attempts[ex.id] || 0) + 1; save();
+  fb.innerHTML = `<div class="msg bad"><b>هنوز درست نیست.</b><ul>${g.messages.map(m => `<li>${esc(m)}</li>`).join("")}</ul></div>` +
+    (cur.fails >= 2 ? `<button class="btn alt" data-a="reveal">نمایش پاسخ</button>` : `<p class="muted">یک بار دیگر امتحان کن. بعد از دو تلاش می‌توانی پاسخ را ببینی.</p>`);
+}
+function revealJournal(){
+  const { ex } = cur;
+  document.getElementById("fb").insertAdjacentHTML("beforeend", `<div class="msg info"><b>پاسخ درست</b>${solutionTable(ex.solutions[0])}<p style="margin:8px 0 0">${md(ex.explain)}</p></div>`);
+  const b = document.querySelector('[data-a="reveal"]'); if(b) b.remove();
+}
+
+/* --- دسته‌بندی --- */
+function renderItems(){
+  const { ex, sel } = cur;
+  document.getElementById("items").innerHTML = ex.items.map((it, i) => `
+    <div class="item" data-i="${i}"><div>${i + 1 > 0 ? fa(i + 1) + ") " : ""}${esc(it.t)}</div>
+      <div class="chips" role="group" aria-label="گروه ${esc(it.t)}">${ex.groups.map(g => `<button class="chip" data-a="chip" data-i="${i}" data-g="${g}" aria-pressed="${sel[i] === g}">${g}</button>`).join("")}</div>
+      <div class="why" id="why${i}"></div></div>`).join("");
+}
+function classCheck(){
+  const { ex, sel, L, idx } = cur, fb = document.getElementById("fb");
+  const unanswered = ex.items.filter((_, i) => !sel[i]).length;
+  if(unanswered){ fb.innerHTML = `<div class="msg info">برای ${fa(unanswered)} قلم هنوز گروهی انتخاب نشده است.</div>`; return; }
+  let wrong = 0;
+  ex.items.forEach((it, i) => {
+    const el = document.querySelector(`.item[data-i="${i}"]`), ok = sel[i] === it.a;
+    el.className = "item " + (ok ? "ok" : "bad"); if(!ok) wrong++;
+  });
+  if(!wrong){
+    S.done[ex.id] = true; save();
+    ex.items.forEach((it, i) => { document.getElementById("why" + i).textContent = it.why; });
+    const nxt = idx < L.exercises.length - 1 ? `<button class="btn" data-a="go" data-to="ex/${L.id}/${idx + 1}">تمرین بعدی</button>` : `<button class="btn" data-a="go" data-to="lesson/${L.id}">بازگشت به درس</button>`;
+    fb.innerHTML = `<div class="msg good"><b>همه درست است.</b> توضیح هر قلم زیر آن آمده است.</div>${nxt}`; return;
+  }
+  cur.fails++; S.attempts[ex.id] = (S.attempts[ex.id] || 0) + 1; save();
+  fb.innerHTML = `<div class="msg bad"><b>${fa(wrong)} مورد درست نیست.</b> موارد قرمز را دوباره بررسی کن.</div>` +
+    (cur.fails >= 2 ? `<button class="btn alt" data-a="classReveal">نمایش پاسخ‌ها</button>` : "");
+}
+function classReveal(){
+  const { ex } = cur;
+  ex.items.forEach((it, i) => { document.getElementById("why" + i).innerHTML = `پاسخ: <b>${it.a}</b>. ${esc(it.why)}`; });
+  const b = document.querySelector('[data-a="classReveal"]'); if(b) b.remove();
+}
+
+/* --- پاسخ تشریحی --- */
+function reflectShow(){
+  const { ex, L, idx } = cur, t = (document.getElementById("refl").value || "").trim();
+  if(t.length < 20){ document.getElementById("fb").innerHTML = '<div class="msg info">اول پاسخ خودت را بنویس (حداقل یک یا دو جمله)، بعد پاسخ نمونه را ببین.</div>'; return; }
+  S.reflect[ex.id] = t; S.done[ex.id] = true; save();
+  const nxt = idx < L.exercises.length - 1 ? `<button class="btn" data-a="go" data-to="ex/${L.id}/${idx + 1}">تمرین بعدی</button>` : `<button class="btn" data-a="go" data-to="lesson/${L.id}">بازگشت به درس</button>`;
+  document.getElementById("fb").innerHTML = `<div class="msg info"><b>پاسخ نمونه</b><p style="margin:4px 0 0">${esc(ex.sample)}</p></div><p class="muted">پاسخ خودت را با این مقایسه کن؛ اگر نکته‌ای جا مانده، همان را اضافه کن.</p>${nxt}`;
+}
+
+/* ---------- دفتر من ---------- */
+let bookTab = "j";
+function viewBooks(){
+  const ents = S.entries;
+  let h = `<h1>دفتر من</h1><p class="muted">اسنادی که درست ثبت کرده‌ای اینجا جمع می‌شوند. مبالغ به میلیون تومان است.</p>
+    <div class="tabs" role="tablist">${[["j","روزنامه"],["l","کل"],["t","تراز"]].map(([k, n]) => `<button role="tab" data-a="tab" data-k="${k}" aria-selected="${bookTab === k}">${n}</button>`).join("")}</div>`;
+  if(!ents.length){
+    h += `<div class="card"><p>هنوز سندی ثبت نشده است.</p><p class="muted">تمرین‌های درس ۲ و ۳ را حل کن؛ هر سند درست خودکار به روزنامه، کل و تراز اضافه می‌شود.</p><button class="btn" data-a="go" data-to="lesson/l2">رفتن به درس ۲</button></div>`;
+    return show(h, "books");
+  }
+  if(bookTab === "j"){
+    ents.forEach((e, i) => {
+      h += `<div class="card"><h3>سند ${fa(i + 1)}: ${esc(e.title)}</h3>
+        <table><thead><tr><th>حساب</th><th>بدهکار</th><th>بستانکار</th></tr></thead><tbody>${e.rows.map(r => `<tr><td>${esc(names[r.acc] || r.acc)}</td><td class="n">${r.d ? E.fmt(r.d) : ""}</td><td class="n">${r.c ? E.fmt(r.c) : ""}</td></tr>`).join("")}</tbody></table>
+        ${e.desc ? `<p class="muted" style="margin:8px 0 0">شرح: ${esc(e.desc)}</p>` : ""}</div>`;
+    });
+  } else {
+    const led = E.buildLedger(ents, ACCOUNTS);
+    if(bookTab === "l"){
+      led.list.forEach(a => {
+        const side = a.balD ? "بدهکار" : a.balC ? "بستانکار" : "صفر";
+        h += `<div class="card"><h3>${esc(names[a.acc])}</h3>
+          <div class="t2"><div><b>بدهکار</b>${a.lines.filter(l => l.d).map(l => `<span>${E.fmt(l.d)} <small class="muted">(سند ${fa(l.no)})</small></span>`).join("")}</div>
+          <div><b>بستانکار</b>${a.lines.filter(l => l.c).map(l => `<span>${E.fmt(l.c)} <small class="muted">(سند ${fa(l.no)})</small></span>`).join("")}</div></div>
+          <p style="margin:8px 0 0"><b>مانده: ${E.fmt(a.balD || a.balC)} ${side}</b></p></div>`;
+      });
+    } else {
+      h += `<table><thead><tr><th>حساب</th><th>مانده بدهکار</th><th>مانده بستانکار</th></tr></thead><tbody>${led.list.map(a => `<tr><td>${esc(names[a.acc])}</td><td class="n">${a.balD ? E.fmt(a.balD) : ""}</td><td class="n">${a.balC ? E.fmt(a.balC) : ""}</td></tr>`).join("")}</tbody>
+        <tfoot><tr><td>جمع</td><td class="n">${E.fmt(led.totalD)}</td><td class="n">${E.fmt(led.totalC)}</td></tr></tfoot></table>
+        <div class="msg ${led.balanced ? "good" : "bad"}" style="margin-top:10px">${led.balanced ? "تراز بسته می‌شود؛ جمع دو ستون برابر است." : "تراز بسته نمی‌شود. اسناد را بررسی کن."}</div>`;
+    }
+  }
+  show(h, "books");
+}
+
+/* ---------- من ---------- */
+let deferredInstall = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; });
+function viewMe(){
+  const total = allEx().length;
+  show(`<h1>من</h1>${storageBanner()}
+    <div class="card"><h3>نام</h3><input class="name" id="nm" maxlength="30" value="${esc(S.name)}" placeholder="نام (اختیاری)"><button class="btn" data-a="saveName2">ذخیره‌ی نام</button></div>
+    <div class="card"><h3>پیشرفت</h3><p>${fa(doneCount())} از ${fa(total)} تمرین درست حل شده و ${fa(S.entries.length)} سند در دفتر توست.</p></div>
+    <div class="card"><h3>نصب روی صفحه‌ی اصلی</h3><p class="muted">در منوی مرورگر گزینه‌ی «افزودن به صفحه‌ی اصلی» را بزن تا مثل برنامه باز شود.</p>
+      ${deferredInstall ? '<button class="btn alt" data-a="install">نصب برنامه</button>' : ""}</div>
+    <div class="card"><h3>پشتیبان‌گیری</h3><p class="muted">پیشرفت فقط روی همین گوشی ذخیره می‌شود. اگر مرورگر را پاک کنی یا گوشی عوض کنی، از این پشتیبان استفاده کن.</p>
+      <button class="btn alt" data-a="copyBackup">کپی پشتیبان</button>
+      <textarea id="bk" placeholder="متن پشتیبان را اینجا بچسبان" style="margin-top:8px"></textarea>
+      <button class="btn alt" data-a="restore" style="margin-top:8px">بازیابی از پشتیبان</button></div>
+    <div class="card"><h3>پاک‌کردن همه‌چیز</h3><button class="btn alt" data-a="reset">شروع دوباره</button></div>
+    <p class="muted">نسخه‌ی آزمایشی ۰٫۱. محتوا آموزشی است و جایگزین مشاوره‌ی مالیاتی یا حقوقی نیست.</p>`, "me");
+}
+function copyBackup(){
+  const txt = JSON.stringify(S);
+  const fallback = () => { const t = document.getElementById("bk"); t.value = txt; t.select(); toast("متن را کپی کن و جای امنی نگه دار"); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast("پشتیبان کپی شد"), fallback); else fallback();
+}
+function restore(){
+  const raw = (document.getElementById("bk").value || "").trim();
+  try{
+    const o = JSON.parse(raw);
+    if(!o || typeof o.done !== "object" || !Array.isArray(o.entries)) throw 0;
+    S = Object.assign({v:1, name:"", asked:true, done:{}, attempts:{}, entries:[], reflect:{}}, o); save(); toast("بازیابی شد"); viewMe();
+  }catch(e){ toast("متن پشتیبان معتبر نیست"); }
+}
+
+/* ---------- رویدادها ---------- */
+const A = {
+  go: t => { const to = t.dataset.to; if(location.hash === "#/" + to || (to === "" && (location.hash === "" || location.hash === "#/"))) route(); else location.hash = "#/" + to; },
+  saveName: () => { S.name = (document.getElementById("nm").value || "").trim(); S.asked = true; save(); viewHome(); },
+  skipName: () => { S.asked = true; save(); viewHome(); },
+  saveName2: () => { S.name = (document.getElementById("nm").value || "").trim(); save(); toast("ذخیره شد"); },
+  addRow: () => { if(cur.ed.rows.length >= 6) return toast("حداکثر شش سطر"); cur.ed.rows.push({acc:"",d:"",c:""}); renderRows(); updateBal(); const s = document.querySelectorAll("#rows select"); s[s.length - 1].focus(); },
+  delRow: t => { cur.ed.rows.splice(+t.dataset.i, 1); renderRows(); updateBal(); },
+  check: checkJournal, reveal: revealJournal,
+  chip: t => { cur.sel[+t.dataset.i] = t.dataset.g; t.parentNode.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", b === t)); },
+  classCheck, classReveal, reflectShow,
+  tab: t => { bookTab = t.dataset.k; viewBooks(); },
+  copyBackup, restore,
+  reset: () => { if(confirm("همه‌ی پیشرفت و اسناد پاک شود؟ این کار برگشت ندارد.")){ S = {v:1, name:"", asked:false, done:{}, attempts:{}, entries:[], reflect:{}}; save(); toast("پاک شد"); location.hash = "#/"; route(); } },
+  install: () => { if(deferredInstall){ deferredInstall.prompt(); deferredInstall = null; } }
+};
+const SCROLL_FB = ["check","classCheck","reflectShow","reveal","classReveal"];
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-a]"); if(!t || !A[t.dataset.a]) return;
+  A[t.dataset.a](t, e);
+  if(SCROLL_FB.indexOf(t.dataset.a) >= 0){ const f = document.getElementById("fb"); if(f){ f.style.scrollMarginTop = "12px"; f.scrollIntoView({block:"start", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth"}); } }
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if(t.id === "desc" && cur) { cur.ed.desc = t.value; return; }
+  const row = t.closest && t.closest(".row"); if(!row || !cur || !cur.ed) return;
+  const r = cur.ed.rows[+row.dataset.i];
+  if(t.classList.contains("d")){ r.d = t.value; if(t.value.trim()){ r.c = ""; row.querySelector(".c").value = ""; } }
+  if(t.classList.contains("c")){ r.c = t.value; if(t.value.trim()){ r.d = ""; row.querySelector(".d").value = ""; } }
+  updateBal();
+});
+document.addEventListener("change", e => { const t = e.target; if(t.classList && t.classList.contains("acc") && cur && cur.ed) cur.ed.rows[+t.closest(".row").dataset.i].acc = t.value; });
+
+/* ---------- مسیریابی ---------- */
+function route(){
+  const p = location.hash.replace(/^#\/?/, "").split("/");
+  if(p[0] === "lesson") return viewLesson(p[1]);
+  if(p[0] === "ex") return viewEx(p[1], p[2]);
+  if(p[0] === "books") return viewBooks();
+  if(p[0] === "me") return viewMe();
+  viewHome();
+}
+window.addEventListener("hashchange", route);
+route();
+if("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){ navigator.serviceWorker.register("sw.js").catch(() => {}); }
+})();
+</script>
+</body>
+</html>
