@@ -122,6 +122,25 @@
     return { list, totalD: td, totalC: tc, balanced: td === tc };
   }
 
-  const api = { parseAmount, fmt, fa, cleanRows, totals, gradeJournal, buildLedger, normDigits };
+
+  /* تصحیح سؤال‌های چندگزینه‌ای: sel = {index: optionIndex} */
+  function gradeQuiz(sel, questions) {
+    const wrong = [], unanswered = [];
+    questions.forEach((q, i) => { if (sel[i] === undefined) unanswered.push(i); else if (sel[i] !== q.a) wrong.push(i); });
+    return { ok: !wrong.length && !unanswered.length, wrong, unanswered };
+  }
+  /* تصحیح محاسبه‌ای: values = رشته‌ها؛ fields = [{a, tol}] */
+  function gradeCalc(values, fields) {
+    const res = fields.map((f, i) => {
+      const raw = values[i]; const v = parseAmount(raw);
+      if (raw === undefined || String(raw).trim() === "") return "empty";
+      if (Number.isNaN(v)) return "invalid";
+      const tol = f.tol !== undefined ? f.tol : 0.0005;
+      return Math.abs(v - f.a) <= tol ? "ok" : "bad";
+    });
+    return { ok: res.every(r => r === "ok"), res };
+  }
+
+  const api = { gradeQuiz, gradeCalc, parseAmount, fmt, fa, cleanRows, totals, gradeJournal, buildLedger, normDigits };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Engine = api;
 })(typeof window !== "undefined" ? window : globalThis);
