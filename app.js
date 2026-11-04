@@ -11,9 +11,9 @@ let store = memStore, storageOK = false;
 try { localStorage.setItem("__t", "1"); localStorage.removeItem("__t"); store = localStorage; storageOK = true; } catch (e) {}
 const auth = Auth.create(store);
 const GUEST = auth.GUEST;
-const newData = () => ({ v: 2, name: "", done: {}, attempts: {}, entries: [], reflect: {} });
+const newData = () => ({ v: 2, name: "", done: {}, attempts: {}, entries: [], reflect: {}, xp: 0, streak: 0, lastDay: "" });
 let user = null, S = null;
-function loadUser(u){ user = u; S = Object.assign(newData(), auth.loadData(u) || {}); }
+function loadUser(u){ user = u; const raw = auth.loadData(u) || {}; S = Object.assign(newData(), raw); if(raw.xp === undefined) S.xp = Object.keys(S.done).filter(k => S.done[k]).length * 10; }
 function save(){ if(user) auth.saveData(user, S); }
 try { const old = localStorage.getItem("hesabdari-karbordi-v1"); if(old && !auth.hasData(GUEST)) auth.saveData(GUEST, JSON.parse(old)); } catch(e){}
 const ses = auth.getSession(); if(ses) loadUser(ses);
@@ -27,6 +27,33 @@ const exDone = L => L.exercises.filter(x => S.done[x.id]).length;
 const lessonDone = L => exDone(L) === L.exercises.length;
 const nextLesson = () => LESSONS.find(l => !lessonDone(l));
 const hasProgress = () => S && (doneCount() > 0 || S.entries.length > 0);
+const LC = ["lv-base", "lv-biz", "lv-svc", "lv-com", "lv-mkt"], LI = ["📘", "📦", "🧾", "🧮", "💼"];
+const lcOf = L => LC[LEVEL_NAMES.indexOf(L.level)] || "lv-base";
+const LV = [[0,"کارآموز تازه‌کار"],[100,"دفتردار"],[250,"حسابدار جونیور"],[450,"حسابدار حرفه‌ای"],[700,"حسابدار ارشد"],[1000,"استاد تراز"],[1400,"مدیر مالی آینده"],[1900,"افسانه‌ی تراز"]];
+function levelInfo(xp){ let i = 0; LV.forEach((l, k) => { if(xp >= l[0]) i = k; }); const c = LV[i], n = LV[i + 1];
+  return { i, name: c[1], next: n ? n[0] : null, pct: n ? Math.round((xp - c[0]) / (n[0] - c[0]) * 100) : 100 }; }
+const dayKey = (d = new Date()) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+function daysBetween(a, b){ const x = a.split("-").map(Number), y = b.split("-").map(Number); return Math.round((Date.UTC(y[0], y[1] - 1, y[2]) - Date.UTC(x[0], x[1] - 1, x[2])) / 86400000); }
+const streakNow = () => (S.lastDay && daysBetween(S.lastDay, dayKey()) <= 1) ? S.streak : 0;
+function bumpStreak(){ const t = dayKey(); if(S.lastDay === t) return; S.streak = (S.lastDay && daysBetween(S.lastDay, t) === 1) ? S.streak + 1 : 1; S.lastDay = t; }
+const reduced = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
+function burst(){
+  if(reduced()) return;
+  try{ if(navigator.vibrate) navigator.vibrate(25); }catch(e){}
+  const f = $("#fb"), r = f ? f.getBoundingClientRect() : null;
+  const x0 = innerWidth / 2, y0 = r ? Math.min(Math.max(r.top + 20, 140), innerHeight - 220) : innerHeight / 2;
+  const em = ["🎉", "✨", "⭐", "💜", "🟢", "🎊"];
+  for(let i = 0; i < 18; i++){
+    const el = document.createElement("span"); el.textContent = em[i % em.length];
+    el.style.cssText = `position:fixed;left:${x0}px;top:${y0}px;font-size:${18 + Math.random() * 14}px;pointer-events:none;z-index:60`;
+    document.body.appendChild(el);
+    const a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 140;
+    el.animate([{ transform: "translate(0,0) scale(.5)", opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px,${Math.sin(a) * d - 60}px) rotate(${Math.random() * 540 - 270}deg) scale(1.1)`, opacity: 0 }], { duration: 900 + Math.random() * 300, easing: "cubic-bezier(.2,.8,.3,1)" }).onfinish = () => el.remove();
+  }
+}
+let theme = store.getItem("tz:theme") || "dark";
+function applyTheme(t){ theme = t; document.documentElement.setAttribute("data-theme", t); const m = document.querySelector('meta[name=theme-color]'); if(m) m.content = t === "light" ? "#F2F0FF" : "#0C1121"; const b = $("#themeBtn"); if(b) b.textContent = t === "light" ? "🌙" : "☀️"; }
+applyTheme(theme);
 let toastT;
 function toast(m){ const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2400); }
 function setTab(tab){ document.querySelectorAll("nav.bar button").forEach(b => { if(b.dataset.tab === tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); }); }
@@ -34,6 +61,7 @@ function show(html, tab, chrome){
   chrome = chrome !== false;
   app.innerHTML = html; setTab(tab);
   $("#top").hidden = !chrome || !user; $("#nav").hidden = !chrome || !user;
+  { const tb = $("#themeBtn"); if(tb) tb.textContent = theme === "light" ? "🌙" : "☀️"; }
   if(user) $("#uchip").innerHTML = user === GUEST ? "مهمان" : `<span class="ltr">${esc(user)}</span>`;
   window.scrollTo(0, 0);
 }
@@ -101,22 +129,24 @@ async function doAuth(){
 }
 
 /* ---------- خانه ---------- */
+const OFFS = [0, 38, 56, 38, 0, -38, -56, -38];
 function viewHome(){
-  const total = allEx().length, d = doneCount(), nxt = nextLesson();
+  const total = allEx().length, d = doneCount(), nxt = nextLesson(), lv = levelInfo(S.xp), st = streakNow();
   let h = storageBanner();
   if(user === GUEST) h += `<div class="warn">حالت مهمان: پیشرفتت فقط روی همین مرورگر می‌ماند. <button class="back" data-a="authUp">ساخت حساب</button></div>`;
-  h += `<h1>${S.name ? "سلام " + esc(S.name) : "سلام، خوش آمدی"}</h1>
-    <p class="muted">همه‌ی درس‌ها رایگان است. هر درس یک موقعیت واقعی کار، نکته‌های ریز و تمرین دارد.</p>
-    <div class="card"><b>پیشرفت تو: ${fa(d)} از ${fa(total)} تمرین</b>
-      <div class="progress" role="progressbar" aria-valuenow="${d}" aria-valuemin="0" aria-valuemax="${total}"><i style="width:${total ? Math.round(d / total * 100) : 0}%"></i></div></div>`;
-  if(nxt) h += `<button class="next" data-a="go" data-to="lesson/${nxt.id}"><small>${exDone(nxt) ? "ادامه بده" : "شروع کن"}</small><b>${esc(nxt.level)}، درس ${fa(nxt.n)}: ${md(nxt.title)}</b></button>`;
-  else h += `<div class="msg good">همه‌ی درس‌ها را تمام کردی. آفرین!</div>`;
-  LEVEL_NAMES.forEach(name => {
+  h += `<div class="hello"><h1>${S.name ? "سلام " + esc(S.name) : "سلام"} 👋</h1><p class="muted">امروز هم یک تمرین حسابداری بزن و امتیاز بگیر!</p></div>
+    <div class="stats"><div class="stat"><b>🔥 ${fa(st)}</b><span>روز پیاپی</span></div><div class="stat"><b>⭐ ${fa(S.xp)}</b><span>امتیاز</span></div><div class="stat"><b>${fa(d)}<small>/${fa(total)}</small></b><span>تمرین</span></div></div>
+    <div class="card lvcard"><div class="r2"><b>${esc(lv.name)}</b><span class="muted">سطح ${fa(lv.i + 1)}</span></div>
+      <div class="xp" role="progressbar" aria-valuenow="${lv.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${lv.pct}%"></i></div>
+      <p class="muted" style="margin:8px 0 0">${lv.next ? fa(lv.next - S.xp) + " امتیاز تا سطح بعدی" : "به بالاترین سطح رسیدی!"}</p></div>`;
+  if(nxt) h += `<button class="hero-next" data-a="go" data-to="lesson/${nxt.id}"><span class="rk">🚀</span><span><small>${exDone(nxt) ? "ادامه بده" : "شروع کن"}</small><b>${md(nxt.title)}</b></span><span class="go">←</span></button>`;
+  else h += `<div class="msg good"><b>🏆 همه‌ی درس‌ها را تمام کردی. آفرین!</b></div>`;
+  LEVEL_NAMES.forEach((name, li) => {
     const ls = LESSONS.filter(l => l.level === name), dn = ls.filter(lessonDone).length;
-    const open = nxt ? nxt.level === name : name === LEVEL_NAMES[0];
-    h += `<details class="level" ${open ? "open" : ""}><summary><span>${esc(name)}</span><span class="count">${fa(dn)} از ${fa(ls.length)} درس</span></summary><div class="lv-in">` +
-      ls.map(L => { const full = lessonDone(L);
-        return `<button class="lcard ${full ? "done" : ""}" data-a="go" data-to="lesson/${L.id}"><span class="num">${fa(L.n)}</span><span><h3>${md(L.title)}</h3><span class="muted">${fa(exDone(L))} از ${fa(L.exercises.length)} تمرین</span> ${full ? '<span class="tag done">کامل شد</span>' : ""}</span></button>`; }).join("") + `</div></details>`;
+    const open = nxt ? nxt.level === name : li === 0;
+    h += `<details class="level ${LC[li]}" ${open ? "open" : ""}><summary><span>${LI[li]} ${esc(name)}</span><span class="pill">${fa(dn)}/${fa(ls.length)}</span></summary><div class="path">` +
+      ls.map((L, k) => { const full = lessonDone(L), isNext = nxt && nxt.id === L.id;
+        return `<button class="node ${full ? "done" : ""} ${isNext ? "now" : ""}" style="--off:${OFFS[k % OFFS.length]}px" data-a="go" data-to="lesson/${L.id}" aria-label="درس ${fa(L.n)}: ${esc(L.title)}"><span class="orb">${full ? "✓" : fa(L.n)}</span>${isNext ? '<span class="bub">همین‌جا</span>' : ""}<span class="nt">${md(L.title)}</span></button>`; }).join("") + `</div></details>`;
   });
   h += `<p class="muted" style="margin-top:16px">محتوا آموزشی است و جایگزین مشاوره‌ی مالیاتی یا حقوقی نیست. نرخ‌ها و مبلغ‌ها در تمرین‌ها فرضی‌اند.</p>`;
   show(h, "home");
@@ -125,18 +155,18 @@ function viewHome(){
 /* ---------- درس ---------- */
 function viewLesson(id){
   const L = LESSONS.find(l => l.id === id); if(!L) return viewHome();
-  let h = `<button class="back" data-a="go" data-to="">بازگشت به فهرست</button>
-    <p class="muted" style="margin:0">${esc(L.level)}</p><h1>درس ${fa(L.n)}: ${md(L.title)}</h1>
-    <p>${md(L.goal)}</p>
+  let h = `<button class="back" data-a="go" data-to="">بازگشت به مسیر</button>
+    <div class="hero ${lcOf(L)}"><span class="orb">${fa(L.n)}</span><div><small>${esc(L.level)}</small><h1>${md(L.title)}</h1></div></div>
+    <p>🎯 ${md(L.goal)}</p>
     <div class="scene"><span class="lab">موقعیت واقعی کار</span>${md(L.scene)}</div>
-    <span class="lab">نکته‌های ریز</span><ul class="tips">${L.tips.map(t => `<li>${md(t)}</li>`).join("")}</ul>
+    <span class="lab" style="margin-bottom:6px">نکته‌های ریز</span><ul class="tips">${L.tips.map(t => `<li>${md(t)}</li>`).join("")}</ul>
     <h2>تمرین‌ها</h2>`;
   L.exercises.forEach((x, i) => {
     const dn = !!S.done[x.id];
     h += `<button class="ex ${dn ? "done" : ""}" data-a="go" data-to="ex/${L.id}/${i}"><span class="st">${dn ? "✓" : fa(i + 1)}</span><span>${md(x.title)}</span></button>`;
   });
   if(lessonDone(L)){ const nx = LESSONS[LESSONS.indexOf(L) + 1];
-    h += `<div class="msg good" style="margin-top:12px">این درس را کامل کردی.</div>` + (nx ? `<button class="btn" data-a="go" data-to="lesson/${nx.id}">درس بعدی: ${md(nx.title)}</button>` : ""); }
+    h += `<div class="msg good" style="margin-top:12px"><b>🏁 این درس را کامل کردی.</b></div>` + (nx ? `<button class="btn" data-a="go" data-to="lesson/${nx.id}">درس بعدی: ${md(nx.title)}</button>` : ""); }
   show(h, "home");
 }
 
@@ -148,8 +178,9 @@ function viewEx(lid, idx){
   const ex = L.exercises[idx];
   cur = { L, ex, idx, fails: 0 };
   let h = `<button class="back" data-a="go" data-to="lesson/${L.id}">بازگشت به درس ${fa(L.n)}</button>
-    <p class="muted" style="margin:0">تمرین ${fa(idx + 1)} از ${fa(L.exercises.length)}${S.done[ex.id] ? " | قبلاً درست حل شده؛ می‌توانی دوباره تمرین کنی" : ""}</p>
-    <h1>${md(ex.title)}</h1>`;
+    <div class="dots" aria-hidden="true">${L.exercises.map((x, i) => `<i class="${S.done[x.id] ? "done" : ""} ${i === idx ? "cur" : ""}"></i>`).join("")}</div>
+    <p class="muted" style="margin:0;text-align:center">تمرین ${fa(idx + 1)} از ${fa(L.exercises.length)}${S.done[ex.id] ? " | قبلاً درست حل شده" : ""}</p>
+    <h1 style="text-align:center">${md(ex.title)}</h1>`;
   if(ex.type === "journal"){
     cur.ed = { rows: [{acc:"",d:"",c:""}, {acc:"",d:"",c:""}], desc: "" };
     h += `<div class="sheet"><p class="story">${md(ex.story)}</p><p class="muted">مبالغ به ${md(ex.unit)}</p>
@@ -172,14 +203,27 @@ function viewEx(lid, idx){
     h += `<p>${md(ex.prompt)}</p><textarea id="refl" placeholder="پاسخ خودت را اینجا بنویس"></textarea>
       <button class="btn" data-a="reflectShow" style="margin-top:8px">نمایش پاسخ نمونه</button><div class="fb" id="fb"></div>`;
   }
-  h += `<div class="btns">${idx > 0 ? `<button class="btn alt" data-a="go" data-to="ex/${L.id}/${idx - 1}">تمرین قبلی</button>` : ""}${idx < L.exercises.length - 1 ? `<button class="btn alt" data-a="go" data-to="ex/${L.id}/${idx + 1}">تمرین بعدی</button>` : ""}</div>`;
+  h += `<div class="btns" style="margin-top:22px">${idx > 0 ? `<button class="btn ghost" data-a="go" data-to="ex/${L.id}/${idx - 1}">→ قبلی</button>` : ""}${idx < L.exercises.length - 1 ? `<button class="btn ghost" data-a="go" data-to="ex/${L.id}/${idx + 1}">رد شدن ←</button>` : ""}</div>`;
   show(h, "home");
   if(ex.type === "journal"){ renderRows(); updateBal(); }
   if(ex.type === "classify") renderItems();
   if(ex.type === "reflect" && S.reflect[ex.id]) $("#refl").value = S.reflect[ex.id];
 }
-function fail(){ cur.fails++; S.attempts[cur.ex.id] = (S.attempts[cur.ex.id] || 0) + 1; save(); }
-function succeed(){ S.done[cur.ex.id] = true; save(); }
+function fail(){ cur.fails++; cur.failed = true; S.attempts[cur.ex.id] = (S.attempts[cur.ex.id] || 0) + 1; save(); }
+function succeed(){
+  const first = !S.done[cur.ex.id], before = levelInfo(S.xp).i;
+  S.done[cur.ex.id] = true; bumpStreak();
+  let gain = 0, lessonBonus = false;
+  if(first){ gain = 10 + (cur.fails === 0 ? 5 : 0); if(lessonDone(cur.L)){ gain += 30; lessonBonus = true; } S.xp += gain; }
+  const after = levelInfo(S.xp); save();
+  let h = '<div class="rewards">';
+  if(first){ h += `<span class="reward">+${fa(gain)} امتیاز</span>`; if(cur.fails === 0) h += '<span class="reward alt">بار اول درست ✨</span>'; }
+  else h += '<span class="reward alt">تمرین مجدد (بدون امتیاز)</span>';
+  if(lessonBonus) h += '<span class="reward alt">🏁 درس کامل شد</span>';
+  if(after.i > before) h += `<span class="reward">🎉 سطح جدید: ${esc(after.name)}</span>`;
+  const st = streakNow(); if(st >= 2) h += `<span class="reward alt">🔥 ${fa(st)} روز پیاپی</span>`;
+  cur.rw = h + "</div>"; cur.burst = true;
+}
 
 /* --- سند --- */
 function renderRows(){
@@ -338,7 +382,7 @@ function viewMe(){
            <div class="field"><label for="pn">رمز جدید (حداقل ۶ نویسه)</label><input type="password" id="pn" autocomplete="new-password"></div><button class="btn" type="submit">ذخیره‌ی رمز جدید</button></form>` : ""}`}
       <p class="muted" style="margin-top:10px">حساب‌ها فقط روی همین دستگاه ساخته می‌شوند و بین گوشی‌ها هم‌گام نیستند. رمز فراموش‌شده قابل بازیابی نیست؛ از پشتیبان استفاده کن.</p></div>
     <div class="card"><h3>نام نمایشی (اختیاری)</h3><input class="name" id="nm" maxlength="30" value="${esc(S.name)}" placeholder="نام"><button class="btn" data-a="saveName">ذخیره‌ی نام</button></div>
-    <div class="card"><h3>پیشرفت</h3><p>${fa(doneCount())} از ${fa(total)} تمرین درست حل شده و ${fa(S.entries.length)} سند در دفتر توست.</p></div>
+    <div class="card"><h3>پیشرفت</h3><p>🏅 ${esc(levelInfo(S.xp).name)} | ⭐ ${fa(S.xp)} امتیاز | 🔥 ${fa(streakNow())} روز پیاپی</p><p class="muted" style="margin:0">${fa(doneCount())} از ${fa(total)} تمرین درست حل شده و ${fa(S.entries.length)} سند در دفتر توست.</p></div>
     <div class="card"><h3>نصب روی صفحه‌ی اصلی</h3><p class="muted">در منوی مرورگر گزینه‌ی «افزودن به صفحه‌ی اصلی» را بزن تا مثل برنامه باز شود.</p>${deferredInstall ? '<button class="btn alt" data-a="install">نصب برنامه</button>' : ""}</div>
     <div class="card"><h3>پشتیبان‌گیری</h3><p class="muted">اگر مرورگر را پاک کنی یا گوشی عوض کنی، با این پشتیبان پیشرفتت برمی‌گردد.</p>
       <button class="btn alt" data-a="copyBackup">کپی پشتیبان</button>
@@ -356,7 +400,7 @@ function copyBackup(){
 function restore(){
   try{ const o = JSON.parse(($("#bk").value || "").trim());
     if(!o || typeof o.done !== "object" || !Array.isArray(o.entries)) throw 0;
-    S = Object.assign(newData(), o); save(); toast("بازیابی شد"); viewMe();
+    S = Object.assign(newData(), o); if(o.xp === undefined) S.xp = doneCount() * 10; save(); toast("بازیابی شد"); viewMe();
   }catch(e){ toast("متن پشتیبان معتبر نیست"); }
 }
 
@@ -381,12 +425,16 @@ const A = {
   book: t => { bookKey = t.dataset.k; viewBooks(); },
   copyBackup, restore,
   resetProgress: () => { if(confirm("همه‌ی پیشرفت و اسناد این حساب پاک شود؟ این کار برگشت ندارد.")){ const n = S.name; S = newData(); S.name = n; save(); toast("پاک شد"); viewMe(); } },
+  theme: () => { const t = theme === "dark" ? "light" : "dark"; store.setItem("tz:theme", t); applyTheme(t); },
   install: () => { if(deferredInstall){ deferredInstall.prompt(); deferredInstall = null; } }
 };
 const SCROLL_FB = ["check","classCheck","quizCheck","calcCheck","reflectShow","reveal","classReveal","quizReveal","calcReveal"];
 document.addEventListener("click", e => {
   const t = e.target.closest("[data-a]"); if(!t || !A[t.dataset.a]) return;
   A[t.dataset.a](t, e);
+  if(cur && cur.rw){ const f = $("#fb"); if(f) f.insertAdjacentHTML("afterbegin", cur.rw); cur.rw = null; }
+  if(cur && cur.burst){ cur.burst = false; burst(); }
+  if(cur && cur.failed){ cur.failed = false; const f = $("#fb"); if(f && !reduced()){ f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); try{ if(navigator.vibrate) navigator.vibrate([40, 40, 40]); }catch(e){} } }
   if(SCROLL_FB.indexOf(t.dataset.a) >= 0){ const f = $("#fb"); if(f){ f.style.scrollMarginTop = "70px"; f.scrollIntoView({block:"start", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth"}); } }
 });
 document.addEventListener("input", e => {
